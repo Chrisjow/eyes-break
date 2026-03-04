@@ -11,6 +11,15 @@ final class MenuBarController: NSObject {
     private var cancellables = Set<AnyCancellable>()
     private var settingsWindow: NSWindow?
 
+    // Persistent menu — built once, items updated in place
+    private var menu: NSMenu!
+    private var countdownItem: NSMenuItem!   // updated every second while menu is open
+    private var pauseItem: NSMenuItem!       // title flips between Pause / Resume
+    private var notifWarnItem: NSMenuItem!
+    private var notifFixItem: NSMenuItem!
+
+    private var menuUpdateTimer: Timer?
+
     // MARK: - Init
 
     init(timerManager: TimerManager, settings: SettingsManager, notifications: NotificationManager) {
@@ -19,24 +28,83 @@ final class MenuBarController: NSObject {
         self.notifications = notifications
         super.init()
         setupStatusItem()
-        observeState()
+        buildMenu()
+        observeTooltip()
     }
 
     // MARK: - Setup
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "eye", accessibilityDescription: "EyeBreak")
-            button.image?.isTemplate = true  // Adapts to dark/light menu bar
-            button.action = #selector(handleClick)
-            button.target = self
+            button.image?.isTemplate = true
         }
     }
 
-    private func observeState() {
-        // Refresh tooltip whenever any relevant state changes
+    /// Build the menu once. Items are mutated in place afterward — no rebuild needed.
+    private func buildMenu() {
+        menu = NSMenu()
+        menu.delegate = self
+        menu.autoenablesItems = false
+
+        // --- Countdown (live) ---
+        countdownItem = NSMenuItem()
+        countdownItem.isEnabled = false
+        menu.addItem(countdownItem)
+
+        menu.addItem(.separator())
+
+        // --- Pause / Resume ---
+        pauseItem = NSMenuItem(
+            title: "Pause",
+            action: #selector(togglePause),
+            keyEquivalent: "p"
+        )
+        pauseItem.target = self
+        menu.addItem(pauseItem)
+
+        // --- Settings ---
+        let settingsItem = NSMenuItem(
+            title: "Settings…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        // --- Notification warning (hidden by default, shown when denied) ---
+        notifWarnItem = NSMenuItem()
+        notifWarnItem.title = "⚠️ Notifications disabled"
+        notifWarnItem.isEnabled = false
+        notifWarnItem.isHidden = true
+        menu.addItem(notifWarnItem)
+
+        notifFixItem = NSMenuItem(
+            title: "Enable in System Settings…",
+            action: #selector(openNotificationSettings),
+            keyEquivalent: ""
+        )
+        notifFixItem.target = self
+        notifFixItem.isHidden = true
+        menu.addItem(notifFixItem)
+
+        menu.addItem(.separator())
+
+        // --- Quit ---
+        let quitItem = NSMenuItem(
+            title: "Quit EyeBreak",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
+    }
+
+    // MARK: - Tooltip (updates while menu is closed)
+
+    private func observeTooltip() {
         Publishers.CombineLatest3(
             timerManager.$timeUntilBreak,
             timerManager.$isPaused,
@@ -58,89 +126,36 @@ final class MenuBarController: NSObject {
         }
     }
 
-    // MARK: - Menu
+    // MARK: - Menu item updates
 
-    @objc private func handleClick() {
-        // Build a fresh menu each click so times are current
-        let menu = buildMenu()
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    private func buildMenu() -> NSMenu {
-        let menu = NSMenu()
-
-        // --- Status line ---
-        let statusItem = NSMenuItem()
+    private func updateAllItems() {
+        // Countdown line
         if timerManager.isOnBreak {
-            statusItem.title = "On break — \(formatTime(timerManager.breakTimeRemaining)) remaining"
+            countdownItem.title = "On break — \(formatTime(timerManager.breakTimeRemaining)) remaining"
         } else if timerManager.isPaused {
-            statusItem.title = "Paused"
+            countdownItem.title = "Paused"
         } else {
-            statusItem.title = "Next break in \(formatTime(timerManager.timeUntilBreak))"
-        }
-        statusItem.isEnabled = false
-        menu.addItem(statusItem)
-
-        menu.addItem(.separator())
-
-        // --- Pause / Resume ---
-        let pauseItem = NSMenuItem(
-            title: timerManager.isPaused ? "Resume" : "Pause",
-            action: #selector(togglePause),
-            keyEquivalent: "p"
-        )
-        pauseItem.target = self
-        menu.addItem(pauseItem)
-
-        // --- Settings ---
-        let settingsItem = NSMenuItem(
-            title: "Settings…",
-            action: #selector(openSettings),
-            keyEquivalent: ","
-        )
-        settingsItem.target = self
-        menu.addItem(settingsItem)
-
-        // --- Notification warning (shown only when permission was denied) ---
-        if notifications.isDenied {
-            let warnItem = NSMenuItem()
-            warnItem.title = "⚠️ Notifications disabled"
-            warnItem.isEnabled = false
-            menu.addItem(warnItem)
-
-            let fixItem = NSMenuItem(
-                title: "Enable in System Settings…",
-                action: #selector(openNotificationSettings),
-                keyEquivalent: ""
-            )
-            fixItem.target = self
-            menu.addItem(fixItem)
+            countdownItem.title = "Next break in \(formatTime(timerManager.timeUntilBreak))"
         }
 
-        menu.addItem(.separator())
+        // Pause / Resume label
+        pauseItem.title = timerManager.isPaused ? "Resume" : "Pause"
 
-        // --- Quit ---
-        let quitItem = NSMenuItem(
-            title: "Quit EyeBreak",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
-        menu.addItem(quitItem)
-
-        return menu
+        // Notification warning visibility
+        let denied = notifications.isDenied
+        notifWarnItem.isHidden = !denied
+        notifFixItem.isHidden = !denied
     }
 
     // MARK: - Actions
 
+    @objc private func togglePause() {
+        timerManager.togglePause()
+    }
+
     @objc private func openNotificationSettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!
         NSWorkspace.shared.open(url)
-    }
-
-    @objc private func togglePause() {
-        timerManager.togglePause()
     }
 
     @objc private func openSettings() {
@@ -165,10 +180,27 @@ final class MenuBarController: NSObject {
         let total = max(0, Int(interval))
         let m = total / 60
         let s = total % 60
-        if m > 0 {
-            return String(format: "%d:%02d", m, s)
-        } else {
-            return String(format: "0:%02d", s)
+        return m > 0 ? String(format: "%d:%02d", m, s) : String(format: "0:%02d", s)
+    }
+}
+
+// MARK: - NSMenuDelegate
+
+extension MenuBarController: NSMenuDelegate {
+
+    func menuWillOpen(_ menu: NSMenu) {
+        // Refresh immediately so the first frame is accurate
+        updateAllItems()
+
+        // Then tick every second while the menu stays open
+        menuUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateAllItems()
         }
+        RunLoop.main.add(menuUpdateTimer!, forMode: .common)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuUpdateTimer?.invalidate()
+        menuUpdateTimer = nil
     }
 }
