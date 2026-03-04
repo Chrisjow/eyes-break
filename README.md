@@ -104,6 +104,7 @@ Click the icon to open the menu:
 | Menu item | Description |
 |---|---|
 | **Next break in X:XX** | Live countdown to the next break |
+| **Break Now** | Start a break immediately (⌘B) |
 | **Delay +1 min** | Push the next break back by 1 minute |
 | **Delay +5 min** | Push the next break back by 5 minutes |
 | **Pause / Resume** | Temporarily stop the timer |
@@ -140,6 +141,10 @@ When a break starts, a **full-screen blurred overlay** appears on all connected 
 - A **Skip Break** button to dismiss early
 
 When the countdown reaches zero, the overlay dismisses itself and the interval timer restarts automatically.
+
+### Screen lock
+
+When you lock your screen (Ctrl+Cmd+Q or closing the lid), EyeBreak assumes you stepped away and took a natural break. The countdown resets to the full interval when your screen unlocks.
 
 ### Settings
 
