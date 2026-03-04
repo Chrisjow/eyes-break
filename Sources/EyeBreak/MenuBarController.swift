@@ -15,6 +15,7 @@ final class MenuBarController: NSObject {
     private var menu: NSMenu!
     private var countdownItem: NSMenuItem!   // updated every second while menu is open
     private var pauseItem: NSMenuItem!       // title flips between Pause / Resume
+    private var breakNowItem: NSMenuItem!    // hidden while on break
     private var delay1Item: NSMenuItem!      // hidden while on break
     private var delay5Item: NSMenuItem!      // hidden while on break
     private var notifWarnItem: NSMenuItem!
@@ -57,6 +58,15 @@ final class MenuBarController: NSObject {
         menu.addItem(countdownItem)
 
         menu.addItem(.separator())
+
+        // --- Break Now (hidden while on break) ---
+        breakNowItem = NSMenuItem(
+            title: "Break Now",
+            action: #selector(breakNow),
+            keyEquivalent: "b"
+        )
+        breakNowItem.target = self
+        menu.addItem(breakNowItem)
 
         // --- Delay break (hidden while on break) ---
         delay1Item = NSMenuItem(
@@ -169,8 +179,9 @@ final class MenuBarController: NSObject {
             countdownItem.title = "Next break in \(formatTime(timerManager.timeUntilBreak))"
         }
 
-        // Delay items — only useful before a break, not during one
+        // Break Now / Delay items — only useful before a break, not during one
         let canDelay = !timerManager.isOnBreak && !timerManager.isPaused
+        breakNowItem.isHidden = timerManager.isOnBreak
         delay1Item.isHidden = !canDelay
         delay5Item.isHidden = !canDelay
 
@@ -189,6 +200,7 @@ final class MenuBarController: NSObject {
         timerManager.togglePause()
     }
 
+    @objc private func breakNow() { timerManager.startBreak() }
     @objc private func delayOne() { timerManager.delayBreak(by: 1) }
     @objc private func delayFive() { timerManager.delayBreak(by: 5) }
 
