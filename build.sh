@@ -25,6 +25,12 @@ mkdir -p "${APP_CONTENTS}/Resources"
 cp "${BINARY_PATH}"       "${APP_CONTENTS}/MacOS/${BINARY_NAME}"
 cp "Resources/Info.plist" "${APP_CONTENTS}/Info.plist"
 
+# Ad-hoc code signing is required on macOS 13+ for UNUserNotificationCenter
+# to show the permission dialog. The "-" identity means no developer certificate
+# is needed — this is sufficient for local use.
+echo "==> Ad-hoc signing…"
+codesign --force --deep --sign - "${APP_NAME}"
+
 echo "==> Done!"
 echo ""
 echo "  App bundle: $(pwd)/${APP_NAME}"

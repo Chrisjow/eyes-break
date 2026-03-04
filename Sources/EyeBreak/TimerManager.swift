@@ -57,8 +57,8 @@ final class TimerManager: ObservableObject {
 
         timeUntilBreak -= 1
 
-        // Send 1-minute warning (only if interval > 1 min total)
-        if timeUntilBreak <= 60 && !preBreakNotificationSent && settings.breakInterval > 1 {
+        // Send 1-minute warning whenever at least 60 s remain before the break
+        if timeUntilBreak <= 60 && !preBreakNotificationSent {
             preBreakNotificationSent = true
             notifications?.sendPreBreakNotification()
         }

@@ -29,15 +29,11 @@ final class NotificationManager: NSObject {
         // so the +1 min / +5 min action buttons always appear.
         registerCategory()
 
-        center.getNotificationSettings { [weak self] settings in
-            switch settings.authorizationStatus {
-            case .notDetermined:
-                // First run: ask the user
-                center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
-            case .denied:
-                self?.isDenied = true
-            default:
-                break
+        // requestAuthorization is idempotent: shows the dialog only on the first call
+        // (.notDetermined), and returns the existing decision on subsequent launches.
+        center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
+            if !granted {
+                DispatchQueue.main.async { self?.isDenied = true }
             }
         }
     }
@@ -71,11 +67,12 @@ final class NotificationManager: NSObject {
         content.sound = .default
         content.categoryIdentifier = Category.preBreak
 
-        // Deliver immediately (no trigger)
+        // A short trigger is more reliable than nil on macOS for guaranteed banner delivery
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(
             identifier: "eyebreak.prebreak",
             content: content,
-            trigger: nil
+            trigger: trigger
         )
 
         // Remove any previous pre-break notification before adding the new one
