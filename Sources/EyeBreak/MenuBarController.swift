@@ -15,8 +15,11 @@ final class MenuBarController: NSObject {
     private var menu: NSMenu!
     private var countdownItem: NSMenuItem!   // updated every second while menu is open
     private var pauseItem: NSMenuItem!       // title flips between Pause / Resume
+    private var delay1Item: NSMenuItem!      // hidden while on break
+    private var delay5Item: NSMenuItem!      // hidden while on break
     private var notifWarnItem: NSMenuItem!
     private var notifFixItem: NSMenuItem!
+    private var notifStyleItem: NSMenuItem!  // always visible shortcut to notification settings
 
     private var menuUpdateTimer: Timer?
 
@@ -55,6 +58,25 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
+        // --- Delay break (hidden while on break) ---
+        delay1Item = NSMenuItem(
+            title: "Delay +1 min",
+            action: #selector(delayOne),
+            keyEquivalent: ""
+        )
+        delay1Item.target = self
+        menu.addItem(delay1Item)
+
+        delay5Item = NSMenuItem(
+            title: "Delay +5 min",
+            action: #selector(delayFive),
+            keyEquivalent: ""
+        )
+        delay5Item.target = self
+        menu.addItem(delay5Item)
+
+        menu.addItem(.separator())
+
         // --- Pause / Resume ---
         pauseItem = NSMenuItem(
             title: "Pause",
@@ -88,6 +110,15 @@ final class MenuBarController: NSObject {
         notifFixItem.target = self
         notifFixItem.isHidden = true
         menu.addItem(notifFixItem)
+
+        // Persistent shortcut so users can set notification style to "Alerts"
+        notifStyleItem = NSMenuItem(
+            title: "Set Notifications to Alerts…",
+            action: #selector(openNotificationSettings),
+            keyEquivalent: ""
+        )
+        notifStyleItem.target = self
+        menu.addItem(notifStyleItem)
 
         menu.addItem(.separator())
 
@@ -138,6 +169,11 @@ final class MenuBarController: NSObject {
             countdownItem.title = "Next break in \(formatTime(timerManager.timeUntilBreak))"
         }
 
+        // Delay items — only useful before a break, not during one
+        let canDelay = !timerManager.isOnBreak && !timerManager.isPaused
+        delay1Item.isHidden = !canDelay
+        delay5Item.isHidden = !canDelay
+
         // Pause / Resume label
         pauseItem.title = timerManager.isPaused ? "Resume" : "Pause"
 
@@ -152,6 +188,9 @@ final class MenuBarController: NSObject {
     @objc private func togglePause() {
         timerManager.togglePause()
     }
+
+    @objc private func delayOne() { timerManager.delayBreak(by: 1) }
+    @objc private func delayFive() { timerManager.delayBreak(by: 5) }
 
     @objc private func openNotificationSettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!

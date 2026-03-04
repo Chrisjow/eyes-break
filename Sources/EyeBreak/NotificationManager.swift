@@ -66,6 +66,8 @@ final class NotificationManager: NSObject {
         content.body = "Look away from your screen and rest your eyes."
         content.sound = .default
         content.categoryIdentifier = Category.preBreak
+        // timeSensitive breaks through Focus modes and stays visible longer
+        content.interruptionLevel = .timeSensitive
 
         // A short trigger is more reliable than nil on macOS for guaranteed banner delivery
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
