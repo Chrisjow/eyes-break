@@ -7,12 +7,14 @@ final class BreakOverlayWindow: NSWindow {
 
     init(screen: NSScreen, timerManager: TimerManager) {
         // Use the full screen frame (includes menu bar area)
+        // Must call the designated initializer (the `screen:` variant is a convenience init).
+        // Passing screen.frame in global coordinates is sufficient to place the window on
+        // the correct display — no `screen:` hint needed.
         super.init(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
 
         // Place above the screen saver so nothing shows through

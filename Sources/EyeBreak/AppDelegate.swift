@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notifications.requestPermission()
 
         // Set up the menu bar icon and menu
-        menuBar = MenuBarController(timerManager: timerManager, settings: settings)
+        menuBar = MenuBarController(timerManager: timerManager, settings: settings, notifications: notifications)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

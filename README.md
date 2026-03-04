@@ -60,6 +60,36 @@ Go to **System Settings → General → Login Items** → click **+** and select
 
 ---
 
+## Rebuilding after code changes
+
+EyeBreak is a compiled Swift app, so **any change to a source file requires a rebuild** before it takes effect.
+
+### Steps
+
+```bash
+cd ~/Documents/eyes-break   # or wherever the project lives
+
+# 1. Quit the running app first (menu bar icon → Quit EyeBreak)
+
+# 2. Rebuild
+./build.sh
+
+# 3. Relaunch
+open EyeBreak.app
+```
+
+If you installed it to `/Applications`, copy the new bundle over the old one:
+
+```bash
+./build.sh
+cp -R EyeBreak.app /Applications/
+open /Applications/EyeBreak.app
+```
+
+> **Note:** Your settings (break interval, duration) are stored in `UserDefaults` and are not affected by rebuilds.
+
+---
+
 ## How to use
 
 ### Menu bar icon

@@ -17,12 +17,27 @@ final class NotificationManager: NSObject {
 
     // MARK: - Setup
 
+    /// Whether the user has explicitly denied notification permission.
+    /// Checked by MenuBarController to surface a warning.
+    private(set) var isDenied = false
+
     func requestPermission() {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
-        center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
-            if granted {
-                self?.registerCategory()
+
+        // Categories must be registered every launch — not just on first grant —
+        // so the +1 min / +5 min action buttons always appear.
+        registerCategory()
+
+        center.getNotificationSettings { [weak self] settings in
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                // First run: ask the user
+                center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+            case .denied:
+                self?.isDenied = true
+            default:
+                break
             }
         }
     }

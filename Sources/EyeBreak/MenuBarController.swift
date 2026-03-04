@@ -7,14 +7,16 @@ final class MenuBarController: NSObject {
     private var statusItem: NSStatusItem!
     private let timerManager: TimerManager
     private let settings: SettingsManager
+    private let notifications: NotificationManager
     private var cancellables = Set<AnyCancellable>()
     private var settingsWindow: NSWindow?
 
     // MARK: - Init
 
-    init(timerManager: TimerManager, settings: SettingsManager) {
+    init(timerManager: TimerManager, settings: SettingsManager, notifications: NotificationManager) {
         self.timerManager = timerManager
         self.settings = settings
+        self.notifications = notifications
         super.init()
         setupStatusItem()
         observeState()
@@ -101,6 +103,22 @@ final class MenuBarController: NSObject {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        // --- Notification warning (shown only when permission was denied) ---
+        if notifications.isDenied {
+            let warnItem = NSMenuItem()
+            warnItem.title = "⚠️ Notifications disabled"
+            warnItem.isEnabled = false
+            menu.addItem(warnItem)
+
+            let fixItem = NSMenuItem(
+                title: "Enable in System Settings…",
+                action: #selector(openNotificationSettings),
+                keyEquivalent: ""
+            )
+            fixItem.target = self
+            menu.addItem(fixItem)
+        }
+
         menu.addItem(.separator())
 
         // --- Quit ---
@@ -115,6 +133,11 @@ final class MenuBarController: NSObject {
     }
 
     // MARK: - Actions
+
+    @objc private func openNotificationSettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!
+        NSWorkspace.shared.open(url)
+    }
 
     @objc private func togglePause() {
         timerManager.togglePause()
