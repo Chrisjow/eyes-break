@@ -191,6 +191,24 @@ No accessibility permissions, no screen recording, no network access.
 
 ---
 
+## Security
+
+EyeBreak is designed to be safe to share and run in a professional environment.
+
+**No network access.** The app imports no networking framework and makes no outbound connections. The only URL it opens is a local `x-apple.systempreferences:…` scheme that launches System Settings on your own machine.
+
+**No external dependencies.** `Package.swift` has zero third-party packages. The app is built entirely from Apple's own SDKs.
+
+**Minimal data storage.** The only data written to disk is two `UserDefaults` values — break interval and break duration — stored in `~/Library/Preferences/com.eyebreak.app.plist`. Nothing else is read or written.
+
+**No sensitive permissions.** The app does not request accessibility, screen recording, camera, microphone, contacts, location, or file system access.
+
+**No remote attack surface.** The app accepts no network input, so there is nothing to exploit remotely. The only external signal it reacts to is `com.apple.screenIsUnlocked`, a system-level notification broadcast by macOS itself.
+
+**Ad-hoc signed.** The binary is signed with an ad-hoc identity (`-`) rather than an Apple Developer certificate. macOS Gatekeeper will show a warning on first launch — go to **System Settings → Privacy & Security → Open Anyway** to approve it. This is a distribution method gate, not a flaw in the app.
+
+---
+
 ## Troubleshooting
 
 **The app doesn't appear in the menu bar after launching.**

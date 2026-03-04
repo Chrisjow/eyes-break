@@ -40,7 +40,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
 
-    <!-- Disable App Transport Security for local use -->
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 </dict>
