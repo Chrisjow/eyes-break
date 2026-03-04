@@ -38,6 +38,28 @@ final class TimerManager: ObservableObject {
         self.notifications = notifications
         self.timeUntilBreak = settings.breakInterval * 60
         startMainTimer()
+        observeScreenLock()
+    }
+
+    deinit {
+        DistributedNotificationCenter.default().removeObserver(self)
+    }
+
+    // MARK: - Screen lock / unlock
+
+    private func observeScreenLock() {
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(screenDidUnlock),
+            name: NSNotification.Name("com.apple.screenIsUnlocked"),
+            object: nil
+        )
+    }
+
+    @objc private func screenDidUnlock() {
+        DispatchQueue.main.async { [weak self] in
+            self?.resetInterval()
+        }
     }
 
     // MARK: - Main countdown
